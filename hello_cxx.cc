@@ -16,6 +16,7 @@
 #include <string>
 #include <stdlib.h>
 #include<cmath>
+#include <unistd.h>
 
 using namespace std;
 
@@ -57,6 +58,7 @@ int main(int argc, char **argv)
         }
         //Define each territory size in one dimention
         cout<<"Territory Size "<<territorySize<<endl;
+        cout<<"Line Size "<<lineSize<<endl;
         //Divides the input into equal parts and sends them to servants
         x_axis=0;
         y_axis=0;
@@ -82,11 +84,16 @@ int main(int argc, char **argv)
         master=true;
     }
     int msgInput[territorySize+2][territorySize+2];
+    //Fill the matrixes with 0 to clear default values
     for(int row = 0; row <territorySize+2; row++){
         for(int column = 0; column < territorySize+2; column++){
             msgInput[row][column]=0;
         }
     }
+    //Sleep servants to wait master
+    if(rank!=0)
+        usleep(3000);
+    //Begin to chat with neighbors
     for(int process=1;process<size;process++){
         if(rank==process){
             //Receive input from master process
@@ -99,13 +106,15 @@ int main(int argc, char **argv)
             
             
 
-            if(rank==1){
-                for(int x_axis=0;x_axis<territorySize;x_axis++){
-                    int msgData=msgInput[x_axis+1][territorySize];
-                    MPI_Sendrecv(&msgData,1,MPI_INT,process+1,0,&msgData,1,MPI_INT,process+1,0,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
-                    msgInput[x_axis+1][territorySize+1]=msgData;
+            if(process*territorySize%6==territorySize){
+                msgData=0;
+                for(int i=0;i<territorySize;i++){
+                    msgData=msgInput[i+1][territorySize];
+                    MPI_Sendrecv(&msgData, 1, MPI_INT, process+1, 0, &msgData, 1, MPI_INT, process+1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                    msgInput[i+1][territorySize+1]=msgData;
                 }
-                cout<<"If Receiving Process 1"<<endl;
+
+                cout<<"If Receiving Process "<<process<<endl;
                 for(int row = 0; row <territorySize+2; row++){
 					for(int column = 0; column < territorySize+2; column++){
                         cout<<msgInput[row][column];
@@ -113,15 +122,17 @@ int main(int argc, char **argv)
                     cout<<endl;
                 }
             }
-            else if(rank==size-1){
+            else if(process*territorySize%6==0){
                 //Send and receive border line
-				for(int x_axis = 0; x_axis < territorySize; x_axis++){
-
-                    int msgData = msgInput[1][x_axis+1];
+                msgData=0;
+                for(int i=0;i<territorySize;i++){
+                    msgData=msgInput[i+1][1];
                     MPI_Sendrecv(&msgData, 1, MPI_INT, process-1, 0, &msgData, 1, MPI_INT, process-1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-                    msgInput[x_axis+1][0] = msgData;
-
+                    msgInput[i+1][0]=msgData;
+                    
                 }
+
+
                 cout<<"Else if Receiving Process "<<process<<endl;
                 for(int row = 0; row <territorySize+2; row++){
 					for(int column = 0; column < territorySize+2; column++){
@@ -131,19 +142,21 @@ int main(int argc, char **argv)
                 }
             }
             else{
-                
-                //Send and Receive rigth border line
-                for(int x_axis=0;x_axis<territorySize;x_axis++){
-                    int msgData=msgInput[x_axis+1][1];
-                    MPI_Sendrecv(&msgData,1,MPI_INT,process-1,0,&msgData,1,MPI_INT,process+1,0,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
-                    msgInput[x_axis+1][2]=msgData;
+                msgData=0;
+                //Send and Receive rigth border line // sonrakinin ilk sirasini gonderiyor
+                for(int i=0;i<territorySize;i++){
+                    msgData=msgInput[i+1][1];
+                    MPI_Sendrecv(&msgData, 1, MPI_INT, process-1, 0, &msgData, 1, MPI_INT, process-1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                    msgInput[i+1][0]=msgData;
+
+                    msgData=msgInput[i+1][territorySize];
+                    MPI_Sendrecv(&msgData, 1, MPI_INT, process+1, 0, &msgData, 1, MPI_INT, process+1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                    msgInput[i+1][territorySize+1]=msgData;
+
+                    
+
                 }
-                //Send and Receive left border line
-                for(int x_axis=0;x_axis<territorySize;x_axis++){
-                    int msgData=msgInput[x_axis+1][1];
-                    MPI_Sendrecv(&msgData,1,MPI_INT,process+1,0,&msgData,1,MPI_INT,process-1,0,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
-                    msgInput[x_axis+1][0]=msgData;
-                }
+
                 cout<<"Else Receiving Process "<<process<<endl;
                 for(int row = 0; row <territorySize+2; row++){
 					for(int column = 0; column < territorySize+2; column++){
@@ -152,31 +165,111 @@ int main(int argc, char **argv)
                     cout<<endl;
                 }
             }
+            //Send & Receive upward & bottomward
+            int same_Coloumn=6/territorySize;
+            if(rank/territorySize<size/territorySize){
+                for(int i=0;i<territorySize;i++){
+                    msgData=msgInput[territorySize][i+1];
+                    MPI_Sendrecv(&msgData, 1, MPI_INT, process+same_Coloumn, 0, &msgData, 1, MPI_INT, process+same_Coloumn, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                    msgInput[territorySize+1][i+1]=msgData;
+                }
+                cout<<"1st area Receiving Process "<<process<<endl;
+                for(int row = 0; row <territorySize+2; row++){
+					for(int column = 0; column < territorySize+2; column++){
+                        cout<<msgInput[row][column];
+                    }
+                    cout<<endl;
+                }
+                
+            }
+            if(rank/territorySize>0){
+                for(int i=0;i<territorySize;i++){
+                    msgData=msgInput[1][i+1];
+                    MPI_Sendrecv(&msgData, 1, MPI_INT, process-same_Coloumn, 0, &msgData, 1, MPI_INT, process-same_Coloumn, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                    msgInput[0][i+1]=msgData;
+                }
+                cout<<"2nd area Receiving Process "<<process<<endl;
+                for(int row = 0; row <territorySize+2; row++){
+					for(int column = 0; column < territorySize+2; column++){
+                        cout<<msgInput[row][column];
+                    }
+                    cout<<endl;
+                }
+            }
+            if(rank/territorySize>0&&rank/territorySize<size/territorySize){
+                for(int i=0;i<territorySize;i++){
+                    msgData=msgInput[1][i+1];
+                    MPI_Sendrecv(&msgData, 1, MPI_INT, process-same_Coloumn, 0, &msgData, 1, MPI_INT, process-same_Coloumn, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                    msgInput[0][i+1]=msgData;                    
+
+                    msgData=msgInput[territorySize][i+1];
+                    MPI_Sendrecv(&msgData, 1, MPI_INT, process+same_Coloumn, 0, &msgData, 1, MPI_INT, process+same_Coloumn, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                    msgInput[territorySize+1][i+1]=msgData;
+                }
+                cout<<"3th area Receiving Process "<<process<<endl;
+                for(int row = 0; row <territorySize+2; row++){
+					for(int column = 0; column < territorySize+2; column++){
+                        cout<<msgInput[row][column];
+                    }
+                    cout<<endl;
+                }
+            }
+
+            if(process*territorySize%6==territorySize&&rank/territorySize<size/territorySize){//sol yukari
+                msgData=msgInput[territorySize][territorySize];
+                MPI_Sendrecv(&msgData, 1, MPI_INT, process+same_Coloumn+1, 0, &msgData, 1, MPI_INT, process+same_Coloumn+1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                msgInput[territorySize+1][territorySize+1]=msgData;
+                cout<<"Corner 1 Receiving Process "<<process<<endl;
+                for(int row = 0; row <territorySize+2; row++){
+					for(int column = 0; column < territorySize+2; column++){
+                        cout<<msgInput[row][column];
+                    }
+                    cout<<endl;
+                }
+            }
+            if(process*territorySize%6==0&&rank/territorySize<size/territorySize){//sag yukari
+                msgData=msgInput[territorySize][1];
+                MPI_Sendrecv(&msgData, 1, MPI_INT, process+same_Coloumn-1, 0, &msgData, 1, MPI_INT, process+same_Coloumn-1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                msgInput[territorySize+1][0]=msgData;
+                cout<<"Corner 2 Receiving Process "<<process<<endl;
+                for(int row = 0; row <territorySize+2; row++){
+					for(int column = 0; column < territorySize+2; column++){
+                        cout<<msgInput[row][column];
+                    }
+                    cout<<endl;
+                }
+            }
+            if(process*territorySize%6==territorySize&&rank/territorySize>0){//sol assagi
+                msgData=msgInput[1][territorySize];
+                MPI_Sendrecv(&msgData, 1, MPI_INT, process-same_Coloumn+1, 0, &msgData, 1, MPI_INT, process-same_Coloumn+1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                msgInput[0][territorySize+1]=msgData;
+                cout<<"Corner 3 Receiving Process "<<process<<endl;
+                for(int row = 0; row <territorySize+2; row++){
+					for(int column = 0; column < territorySize+2; column++){
+                        cout<<msgInput[row][column];
+                    }
+                    cout<<endl;
+                }
+            }
+            if(process*territorySize%6==0&&rank/territorySize>0){//sag assagi
+                msgData=msgInput[1][1];
+                MPI_Sendrecv(&msgData, 1, MPI_INT, process-same_Coloumn-1, 0, &msgData, 1, MPI_INT, process-same_Coloumn-1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                msgInput[0][0]=msgData;
+                cout<<"Corner 4 Receiving Process "<<process<<endl;
+                for(int row = 0; row <territorySize+2; row++){
+					for(int column = 0; column < territorySize+2; column++){
+                        cout<<msgInput[row][column];
+                    }
+                    cout<<endl;
+                }
+            }
+
+
+
             
         }
     }
-    
 
-    
-        
-    
-    
-
-
-
-    // for(int i=0;i<2;i++){
-    //     if(rank==0){
-    //         msgData=i+1;
-    //         MPI_Send(&msgData,1,MPI_INT,1,7,MPI_COMM_WORLD);
-    //     }
-    // }
-    // for(int i=1;i<2;i++){
-    //     if(rank==1){
-    //         cout<<"Data Before Receive\t"<<msgData<<endl;
-    //         MPI_Recv(&msgData,1,MPI_INT,0,7,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
-    //         cout<<"Data After Receive is\t"<<msgData<<endl;
-    //     }
-    // }
     MPI::Finalize();
 
     return 0;
