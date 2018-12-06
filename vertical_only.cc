@@ -17,6 +17,7 @@
 #include <stdlib.h>
 #include<cmath>
 #define size_matris 6
+#define T 5000000
 using namespace std;
 
 vector<int> mySplit(string line){
@@ -30,8 +31,8 @@ vector<int> mySplit(string line){
     return values;
 }
 
-double monte_carlo(int x,int y,int value,int env,double B,double Y){
-    double calculate=-2*Y*x*y-2*B*value*env;
+double monte_carlo(int oldValue,int newValue,int env,double B,double Y){
+    double calculate=-2*Y*oldValue*newValue-2*B*newValue*env;
     double ex=exp(calculate);
     return ex;
 }
@@ -82,7 +83,6 @@ int main(int argc, char **argv)
         //Divides the input into equal parts and sends them to servants
         x_axis=0;y_axis=0;
         for(int process=1;process<size;process++){
-            cout<<"process "<<process<<endl;
             for(int col=x_axis;col<x_axis+territorySize;col++){
                 for(int row=0;row<size_matris;row++){
                     //cout<<row<<" "<<col<<" "<<input[row][col]<<endl;
@@ -94,6 +94,7 @@ int main(int argc, char **argv)
         cout<<"Master send"<<endl;
     }
     int msgInput[territorySize+2][size_matris];
+    int msgCopy[territorySize+2][size_matris];
     //Fill the matrixes with 0 to clear default values
     for(int row = 0; row <territorySize+2; row++){
         for(int column = 0; column < size_matris; column++){
@@ -114,33 +115,54 @@ int main(int argc, char **argv)
             if(rank==1){
                 for(int i=0;i<size_matris;i++){
                     msgData=msgInput[territorySize][i];
-                    MPI_Sendrecv(&msgData, 1, MPI_INT, process+1, 0, &msgData, 1, MPI_INT, process+1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                    MPI_Send(&msgData, 1, MPI_INT, process+1, 0, MPI_COMM_WORLD);
+                }
+                for(int i=0;i<size_matris;i++){
+                    MPI_Recv(&msgData, 1, MPI_INT, process+1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
                     msgInput[territorySize+1][i]=msgData;
                 }
             }
             else if(rank==size-1){
                 for(int i=0;i<size_matris;i++){
                     msgData=msgInput[1][i];
-                    MPI_Sendrecv(&msgData, 1, MPI_INT, process-1, 0, &msgData, 1, MPI_INT, process-1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                    MPI_Send(&msgData, 1, MPI_INT, process-1, 0, MPI_COMM_WORLD);
+                }
+                for(int i=0;i<size_matris;i++){
+                    MPI_Recv(&msgData, 1, MPI_INT, process-1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
                     msgInput[0][i]=msgData;
                 }
             }
             else{
                 for(int i=0;i<size_matris;i++){
-                    msgData=msgInput[1][i];
-                    MPI_Sendrecv(&msgData, 1, MPI_INT, process-1, 0, &msgData, 1, MPI_INT, process-1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-                    msgInput[0][i]=msgData;  
-
                     msgData=msgInput[territorySize][i];
-                    MPI_Sendrecv(&msgData, 1, MPI_INT, process+1, 0, &msgData, 1, MPI_INT, process+1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-                    msgInput[territorySize+1][i]=msgData; 
-                }  
+                    MPI_Send(&msgData, 1, MPI_INT, process+1, 0, MPI_COMM_WORLD);
+                }
+                for(int i=0;i<size_matris;i++){
+                    MPI_Recv(&msgData, 1, MPI_INT, process+1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                    msgInput[territorySize+1][i]=msgData;
+                }
+                for(int i=0;i<size_matris;i++){
+                    msgData=msgInput[1][i];
+                    MPI_Send(&msgData, 1, MPI_INT, process-1, 0, MPI_COMM_WORLD);
+                }
+                for(int i=0;i<size_matris;i++){
+                    MPI_Recv(&msgData, 1, MPI_INT, process-1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                    msgInput[0][i]=msgData;
+                }
             }
             //Calculation
+            for(int row = 0; row <territorySize+2; row++){//Z=X.copy()
+                for(int column = 0; column < size_matris; column++){
+                    msgCopy[row][column]=msgInput[row][column];
+                }
+            }
+
+
+
             int pixels=territorySize*size_matris;
             vector<int> history; 
             for(int i=0;i<pixels;i++){
-                int random=rand()%pixels+1;
+                int random=rand()%pixels;
                 
                 while(true){
                     bool jail=true;
@@ -152,32 +174,58 @@ int main(int argc, char **argv)
                     }
                     if(jail==true){
                         
-                        int x=random%size_matris;
-                        int y=random/size_matris;
-                        cout<<"Process "<<process<<" Random "<<i+1<<" "<<random<<" x "<<x+1<<" y "<<y<<" msgInputValue "<<msgInput[x+1][y]<<endl;
+                        int y=random%size_matris;
+                        int x=random/size_matris+1;
+                        int up=msgCopy[x-1][y];
+                        int down=msgCopy[x+1][y];
+                        int left=msgCopy[x][y-1];
+                        int right=msgCopy[x][y+1];
+                        int left_top=msgCopy[x-1][y-1];
+                        int right_top=msgCopy[x-1][y+1];
+                        int left_bottom=msgCopy[x+1][y-1];
+                        int right_bottom=msgCopy[x+1][y+1];
+
+                        int env;
+                        if(y==0)
+                            env=up+down+right+right_bottom+right_top;
+                        else if(y==size_matris-1)
+                            env=up+down+left+left_bottom+left_top;
+                        else
+                            env=up+down+left+right+left_top+right_top+left_bottom+right_bottom;
+                        //cout<<"Total env:"<<env<<endl;
+                        double ex=monte_carlo(msgInput[x][y],msgCopy[x][y],env,B,1.0);
+                        //cout<<"Exp:"<<ex<<endl;
+                        if(ex>0.67){
+                            msgCopy[x][y]=-msgInput[x][y];
+                            //cout<<"old value:"<<msgInput[x][y]<<" new value:"<<msgCopy[x][y]<<endl;
+                        }
                         history.push_back(random);
                         break;
                     }
                     else{
-                        if(i==pixels-1){
-                            int x=random%size_matris;
-                            int y=random/size_matris;
-                            cout<<"Process "<<process<<" Random "<<i+1<<" "<<random<<" x "<<x+1<<" y "<<y<<" msgInputValue "<<msgInput[x+1][y]<<endl;
-                            break;
-                        }
-                        random=rand()%pixels+1;
+                        int x=random%size_matris;
+                        int y=random/size_matris;
+                        random=rand()%pixels;
                     }
                 }
                 
             }
             cout<<endl;
-            cout<<"Receiving Process "<<process<<endl;
-                for(int row = 0; row <territorySize+2; row++){
-					for(int column = 0; column <size_matris ; column++){
-                        cout<<msgInput[row][column];
-                    }
-                    cout<<endl;
+            cout<<"Receiving Process New "<<process<<endl;
+            for(int row = 0; row <territorySize+2; row++){
+                for(int column = 0; column <size_matris ; column++){
+                    cout<<msgCopy[row][column];
                 }
+                cout<<endl;
+            }
+            cout<<endl;
+            cout<<"Receiving Process Old "<<process<<endl;
+            for(int row = 0; row <territorySize+2; row++){
+                for(int column = 0; column <size_matris ; column++){
+                    cout<<msgInput[row][column];
+                }
+                cout<<endl;
+            }
         }}
     
     MPI::Finalize();
