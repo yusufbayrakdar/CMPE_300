@@ -43,6 +43,7 @@ int main(int argc, char **argv)
     double Y=log((1-pi)/pi)/2;
     double B;
     sscanf(argv[3],"%lf",&B);
+    
     MPI::Init();
     rank = MPI::COMM_WORLD.Get_rank();
     size = MPI::COMM_WORLD.Get_size();
@@ -55,6 +56,8 @@ int main(int argc, char **argv)
     int same_Coloumn=size_matris/territorySize;
     int servant_processes=size-1;
     int process_per_line=sqrt(servant_processes);
+    double subScores=0;
+    double prevHighestScore=0;
     //Master process
     if(rank==0){
         ifstream file(argv[1]);
@@ -72,10 +75,13 @@ int main(int argc, char **argv)
         }
         
         //Define each territory size in one dimention
-        cout<<"Territory Size "<<territorySize<<endl;
-        cout<<"Line Size "<<lineSize<<endl;
+        // cout<<"Territory Size "<<territorySize<<endl;
+        // cout<<"Line Size "<<lineSize<<endl;
         
-        
+        for(int i=0;i<250;i++){
+            double score=0;
+            double scoreTemp=0;
+            cout<<"Main Iteration "<<i<<endl;
         //Divides the input into equal parts and sends them to servants
         x_axis=0;y_axis=0;
         for(int process=1;process<size;process++){
@@ -88,10 +94,9 @@ int main(int argc, char **argv)
             x_axis+=territorySize;
         }
         
-        cout<<"Master send"<<endl;
+        //cout<<"Master send"<<endl;
         //Receive from slaves
         x_axis=0;
-        
         for(int process=1;process<size;process++){
             for(int col=x_axis;col<x_axis+territorySize;col++){
                 for(int row=0;row<size_matris;row++){
@@ -106,21 +111,37 @@ int main(int argc, char **argv)
         }
 
 
+        for(int process=1;process<size;process++){
+            MPI_Recv(&scoreTemp, 1, MPI_DOUBLE, process, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+            score+=scoreTemp;
+        }
+        cout<<"prevHighestScore:"<<prevHighestScore<<" score:"<<score<<endl;
+        
+        if(score>prevHighestScore){
+            prevHighestScore=score;
+            for(int col=0;col<size_matris;col++){
+                for(int row=0;row<size_matris;row++){
+                        input[row][col]=output[row][col];
+                }
+            }
+        }
+    }
+
+
 
         ofstream out (argv[2]);
         for(int col=0;col<size_matris;col++){
             for(int row=0;row<size_matris;row++){
                 if(output[row][col]!=0){
                     out<<output[row][col]<<" ";
-                    cout<<output[row][col]<<" ";
+                    //cout<<output[row][col]<<" ";
                 }
             }
             out<<endl;
-            cout<<endl;
+            //cout<<endl;
         }
-
-
     }
+    for(int i=0;i<250;i++){
     int msgInput[territorySize+2][size_matris];
     int msgCopy[territorySize+2][size_matris];
     //Fill the matrixes with 0 to clear default values
@@ -222,8 +243,10 @@ int main(int argc, char **argv)
                         //cout<<"Total env:"<<env<<endl;
                         double ex=monte_carlo(msgInput[x][y],msgCopy[x][y],env,B,1.0);
                         if(ex>1)ex=1;
+
                         // cout<<"Exp:"<<ex<<endl;
                         if(ex>0.5){
+                            subScores+=ex;
                             msgCopy[x][y]=-msgInput[x][y];
                             // cout<<"old value:"<<msgInput[x][y]<<" new value:"<<msgCopy[x][y]<<endl;
                         }
@@ -238,7 +261,6 @@ int main(int argc, char **argv)
                 }
                 
             }
-            cout<<"Sending Process "<<rank<<endl;
             for(int i=0;i<territorySize;i++){
                 for(int j=0;j<size_matris;j++){
                     msgData=msgCopy[i+1][j];
@@ -247,7 +269,8 @@ int main(int argc, char **argv)
                 }
                 //cout<<endl;
             }
-
+            MPI_Send(&subScores, 1, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD);
+            
             // cout<<endl;
             // cout<<"Receiving Process New "<<process<<endl;
             // for(int row = 0; row <territorySize+2; row++){
@@ -265,6 +288,7 @@ int main(int argc, char **argv)
             //     cout<<endl;
             // }
         }}
+    }
     
     MPI::Finalize();
 
