@@ -1,13 +1,10 @@
-//
-// Copyright (c) 2004-200size_matris The Trustees of Indiana University and Indiana
-//                         University Research and Technology
-//                         Corporation.  All rights reserved.
-// Copyright (c) 200size_matris      Cisco Systems, Inc.  All rights reserved.
-//
-// Sample MPI "hello world" application in C++
-//
-//To compile
-//mpic++ -o hello_cxx hello_cxx.cc
+/*
+*   Yusuf Sabri Bayrakdar
+*   2016400378
+*   Algorithm Analaysis Project
+*
+*   To compile => mpic++ -o hello_cxx hello_cxx.cc
+*/
 
 #include "mpi.h"
 #include <iostream>
