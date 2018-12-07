@@ -110,8 +110,10 @@ int main(int argc, char **argv)
         ofstream out (argv[2]);
         for(int col=0;col<size_matris;col++){
             for(int row=0;row<size_matris;row++){
-                out<<output[row][col]<<" ";
-                cout<<output[row][col]<<" ";
+                if(output[row][col]!=0){
+                    out<<output[row][col]<<" ";
+                    cout<<output[row][col]<<" ";
+                }
             }
             out<<endl;
             cout<<endl;
