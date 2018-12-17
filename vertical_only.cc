@@ -12,7 +12,7 @@
 #include <fstream>
 #include <string>
 #include <stdlib.h>
-#include<cmath>
+#include <cmath>
 #define size_matris 201
 #define T 5000
 using namespace std;
@@ -47,12 +47,12 @@ int main(int argc, char **argv)
     MPI::Init();
     rank = MPI::COMM_WORLD.Get_rank();
     size = MPI::COMM_WORLD.Get_size();
-    
 
     int servant_processes=size-1;
     int territorySize=size_matris/(servant_processes);
     int same_Coloumn=size_matris/territorySize;
     int process_per_line=sqrt(servant_processes);
+
     //Master process
     if(rank==0){
         ifstream file(argv[1]);
