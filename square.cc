@@ -36,6 +36,11 @@ int main(int argc, char **argv)
 {
     int rank, size;
     int msgData=0;
+    double pi;
+    sscanf(argv[4],"%lf",&pi);
+    double B;
+    sscanf(argv[3],"%lf",&pi);
+    
     MPI::Init();
     rank = MPI::COMM_WORLD.Get_rank();
     size = MPI::COMM_WORLD.Get_size();
@@ -88,6 +93,7 @@ int main(int argc, char **argv)
         master=true;
     }
     int msgInput[territorySize+2][territorySize+2];
+    int msgCopy[territorySize+2][territorySize+2];
     //Fill the matrixes with 0 to clear default values
     for(int row = 0; row <territorySize+2; row++){
         for(int column = 0; column < territorySize+2; column++){
@@ -95,7 +101,7 @@ int main(int argc, char **argv)
         }
     }
     //Begin to chat with neighbors
-    
+    int pixels=territorySize*size_matris;
     for(int process=1;process<size;process++){
         if(rank==process){
             //Receive input from master process
@@ -151,10 +157,7 @@ int main(int argc, char **argv)
                 }
 
             }
-            
-            
-           
-             //Send & Receive upward & bottomward
+            //Send & Receive upward & bottomward
             if(process<=process_per_line){//First row
                 for(int i=0;i<territorySize;i++){
                     msgData=msgInput[territorySize][i+1];
@@ -203,31 +206,149 @@ int main(int argc, char **argv)
                 MPI_Recv(&msgData, 1, MPI_INT, process+same_Coloumn+1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
                 msgInput[territorySize+1][territorySize+1]=msgData;
             }
-            if(process<=process_per_line&&process*territorySize%6==0){//sag yukari
+            else if(process<=process_per_line&&process*territorySize%6==0){//sag yukari
                 msgData=msgInput[territorySize][1];
                 MPI_Send(&msgData, 1, MPI_INT, process+same_Coloumn-1, 0, MPI_COMM_WORLD);
                 MPI_Recv(&msgData, 1, MPI_INT, process+same_Coloumn-1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
                 msgInput[territorySize+1][0]=msgData;
             }
-            if(process>servant_processes-process_per_line&&process*territorySize%6==territorySize){//sol assagi
+            else if(process>servant_processes-process_per_line&&process*territorySize%6==territorySize){//sol assagi
                 msgData=msgInput[1][territorySize];
                 MPI_Send(&msgData, 1, MPI_INT, process-same_Coloumn+1, 0, MPI_COMM_WORLD);
                 MPI_Recv(&msgData, 1, MPI_INT, process-same_Coloumn+1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
                 msgInput[0][territorySize+1]=msgData;
             }
-            if(process>servant_processes-process_per_line&&process*territorySize%6==0){//sag assagi
+            else if(process>servant_processes-process_per_line&&process*territorySize%6==0){//sag assagi
                 msgData=msgInput[1][1];
                 MPI_Send(&msgData, 1, MPI_INT, process-same_Coloumn-1, 0, MPI_COMM_WORLD);
                 MPI_Recv(&msgData, 1, MPI_INT, process-same_Coloumn-1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
                 msgInput[0][0]=msgData;
             }
-            cout<<"Receiving Process "<<process<<endl;
-                for(int row = 0; row <territorySize+2; row++){
-					for(int column = 0; column < territorySize+2; column++){
-                        cout<<msgInput[row][column];
-                    }
-                    cout<<endl;
+            else if (process<=process_per_line) {
+                msgData=msgInput[territorySize][territorySize];
+                MPI_Send(&msgData, 1, MPI_INT, process+same_Coloumn+1, 0, MPI_COMM_WORLD);
+                MPI_Recv(&msgData, 1, MPI_INT, process+same_Coloumn+1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                msgInput[territorySize+1][territorySize+1]=msgData;
+
+                msgData=msgInput[territorySize][1];
+                MPI_Send(&msgData, 1, MPI_INT, process+same_Coloumn-1, 0, MPI_COMM_WORLD);
+                MPI_Recv(&msgData, 1, MPI_INT, process+same_Coloumn-1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                msgInput[territorySize+1][0]=msgData;
+            }
+            else 
+            if (process>servant_processes-process_per_line) {
+                msgData=msgInput[1][territorySize];
+                MPI_Send(&msgData, 1, MPI_INT, process-same_Coloumn+1, 0, MPI_COMM_WORLD);
+                MPI_Recv(&msgData, 1, MPI_INT, process-same_Coloumn+1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                msgInput[0][territorySize+1]=msgData;
+
+                msgData=msgInput[1][1];
+                MPI_Send(&msgData, 1, MPI_INT, process-same_Coloumn-1, 0, MPI_COMM_WORLD);
+                MPI_Recv(&msgData, 1, MPI_INT, process-same_Coloumn-1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                msgInput[0][0]=msgData;
+            }
+            else 
+            if (process*territorySize%6==territorySize) {
+                msgData=msgInput[territorySize][territorySize];
+                MPI_Send(&msgData, 1, MPI_INT, process+same_Coloumn+1, 0, MPI_COMM_WORLD);
+                MPI_Recv(&msgData, 1, MPI_INT, process+same_Coloumn+1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                msgInput[territorySize+1][territorySize+1]=msgData;
+
+                msgData=msgInput[1][territorySize];
+                MPI_Send(&msgData, 1, MPI_INT, process-same_Coloumn+1, 0, MPI_COMM_WORLD);
+                MPI_Recv(&msgData, 1, MPI_INT, process-same_Coloumn+1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                msgInput[0][territorySize+1]=msgData;
+            }
+            else 
+            if (process*territorySize%6==0) {
+                msgData=msgInput[territorySize][1];
+                MPI_Send(&msgData, 1, MPI_INT, process+same_Coloumn-1, 0, MPI_COMM_WORLD);
+                MPI_Recv(&msgData, 1, MPI_INT, process+same_Coloumn-1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                msgInput[territorySize+1][0]=msgData;
+
+                msgData=msgInput[1][1];
+                MPI_Send(&msgData, 1, MPI_INT, process-same_Coloumn-1, 0, MPI_COMM_WORLD);
+                MPI_Recv(&msgData, 1, MPI_INT, process-same_Coloumn-1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                msgInput[0][0]=msgData;
+            }
+            
+            else
+            {
+                msgData=msgInput[territorySize][territorySize];
+                MPI_Send(&msgData, 1, MPI_INT, process+same_Coloumn+1, 0, MPI_COMM_WORLD);
+                MPI_Recv(&msgData, 1, MPI_INT, process+same_Coloumn+1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                msgInput[territorySize+1][territorySize+1]=msgData;
+
+                msgData=msgInput[territorySize][1];
+                MPI_Send(&msgData, 1, MPI_INT, process+same_Coloumn-1, 0, MPI_COMM_WORLD);
+                MPI_Recv(&msgData, 1, MPI_INT, process+same_Coloumn-1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                msgInput[territorySize+1][0]=msgData;
+
+                msgData=msgInput[1][territorySize];
+                MPI_Send(&msgData, 1, MPI_INT, process-same_Coloumn+1, 0, MPI_COMM_WORLD);
+                MPI_Recv(&msgData, 1, MPI_INT, process-same_Coloumn+1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                msgInput[0][territorySize+1]=msgData;
+
+                msgData=msgInput[1][1];
+                MPI_Send(&msgData, 1, MPI_INT, process-same_Coloumn-1, 0, MPI_COMM_WORLD);
+                MPI_Recv(&msgData, 1, MPI_INT, process-same_Coloumn-1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                msgInput[0][0]=msgData;
+            }
+            
+            
+            
+            
+            
+            //Calculating & Denoising
+            int random=rand()%pixels;
+            int y=random%size_matris+1;
+            int x=random/size_matris+1;
+            int up=msgCopy[x-1][y];
+            int down=msgCopy[x+1][y];
+            int left=msgCopy[x][y-1];
+            int right=msgCopy[x][y+1];
+            int left_top=msgCopy[x-1][y-1];
+            int right_top=msgCopy[x-1][y+1];
+            int left_bottom=msgCopy[x+1][y-1];
+            int right_bottom=msgCopy[x+1][y+1];
+
+            int env;
+            if(y==0)
+                env=up+down+right+right_bottom+right_top;
+            else if(y==size_matris-1)
+                env=up+down+left+left_bottom+left_top;
+            else if(x==0)
+                env=left+left_bottom+down+right_bottom+right;
+            else if(x==size_matris-1)
+                env=left+left_top+up+right_top+right;
+            else
+                env=up+down+left+right+left_top+right_top+left_bottom+right_bottom;
+            double ex=monte_carlo(msgInput[x][y],msgCopy[x][y],env,B,1.0);
+            if(ex>1)ex=1;
+            int treshold=rand()%9+1;
+            
+            if (ex*10>treshold) {
+                msgCopy[x][y]=-msgInput[x][y];
+            }
+            
+            for(int i = 0; i <territorySize; i++)
+            {
+                
+                for(int j = 0; j < size_matris; j++)
+                {
+                    msgData=msgCopy[i+1][j+1];
+                    MPI_Send(&msgData,1,MPI_INT,0,0,MPI_COMM_WORLD);
                 }
+                
+            }
+            
+            cout<<"Receiving Process "<<process<<endl;
+            for(int row = 0; row <territorySize+2; row++){
+                for(int column = 0; column < territorySize+2; column++){
+                    cout<<msgInput[row][column];
+                }
+                cout<<endl;
+            }
         }
     }
     MPI_Barrier(MPI_COMM_WORLD);
