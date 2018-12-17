@@ -5,7 +5,7 @@
 *
 *   To compile => mpic++ -o hello_cxx hello_cxx.cc
 */
-
+//msjlasmada kileri msgcopy yap
 #include "mpi.h"
 #include <iostream>
 #include <vector>
