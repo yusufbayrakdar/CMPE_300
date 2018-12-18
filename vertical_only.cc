@@ -3,7 +3,9 @@
 *   2016400378
 *   Algorithm Analaysis Project
 *
-*   To compile => mpic++ -o hello_cxx hello_cxx.cc
+*   To compile          => mpic++ -o vertical_only vertical_only.cc
+*   To run              => time -p mpiexec -n  11 ./vertical_only lena200_noisy.txt output.txt 0.8 0.15
+*   To see the image    => python text_to_image.py output.txt yingyang.jpg
 */
 //msjlasmada kileri msgcopy yap
 #include "mpi.h"
@@ -14,7 +16,7 @@
 #include <stdlib.h>
 #include <cmath>
 #define size_matris 201
-#define T 5000
+#define T 500000
 using namespace std;
 
 vector<int> mySplit(string line){
@@ -193,11 +195,11 @@ int main(int argc, char **argv)
                     env=up+down+left+left_bottom+left_top;
                 else
                     env=up+down+left+right+left_top+right_top+left_bottom+right_bottom;
-                double ex=monte_carlo(msgInput[x][y],msgCopy[x][y],env,B,1.0);//Call the monte_carlo function to calculate exp value
+                double ex=monte_carlo(msgInput[x][y],msgCopy[x][y],env,B,Y);//Call the monte_carlo function to calculate exp value
                 if(ex>1)ex=1;//if the exp value is greater then 1 then equal it to 1
-                int treshold=rand()%9+1;//Pick a random treshold number
-                if(ex*10>treshold){//If the exp value is greater than treshold then change the value
-                    msgCopy[x][y]=-msgInput[x][y];
+                double treshold=(rand()%9+1)*0.1;//Pick a random treshold number
+                if(treshold<ex){//If the exp value is greater than treshold then change the value
+                    msgCopy[x][y]=-msgCopy[x][y];
                 }                
         }
             for(int i=0;i<territorySize;i++){
