@@ -24,7 +24,6 @@ vector<int> mySplit(string line){
         line=line.substr(line.find(" ")+1);
         values.push_back(atoi( atom.c_str() ));
     }
-    // values.push_back(atoi( line.c_str() ));
     return values;
 }
 double monte_carlo(int oldValue,int newValue,int env,double B,double Y){
@@ -341,7 +340,6 @@ int main(int argc, char **argv)
                 msgCopy[x][y]=-1*msgCopy[x][y];
             }
             }
-            // cout<<"Process "<<process<<endl;
             for(int i = 0; i <territorySize; i++)
             {   
                 for(int j = 0; j < territorySize; j++)
