@@ -14,7 +14,7 @@
 #include <stdlib.h>
 #include <cmath>
 #define size_matris 200
-#define Times 10000
+#define Times 500000
 using namespace std;
 
 vector<int> mySplit(string line){
@@ -333,7 +333,7 @@ int main(int argc, char **argv)
 
             int env;
             env=up+down+left+right+left_top+right_top+left_bottom+right_bottom;
-            double ex=monte_carlo(msgInput[x][y],msgCopy[x][y],env,B,1.0);
+            double ex=monte_carlo(msgInput[x][y],msgCopy[x][y],env,B,Y);
             if(ex>1)ex=1;
             double treshold=(rand()%9+1)*0.1;
             

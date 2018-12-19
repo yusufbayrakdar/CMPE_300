@@ -7,7 +7,7 @@
 *   To run              => time -p mpiexec -n  11 ./vertical_only lena200_noisy.txt output.txt 0.8 0.15
 *   To see the image    => python text_to_image.py output.txt yingyang.jpg
 */
-//msjlasmada kileri msgcopy yap
+/*<-Libriries*/
 #include "mpi.h"
 #include <iostream>
 #include <vector>
@@ -15,9 +15,13 @@
 #include <string>
 #include <stdlib.h>
 #include <cmath>
-#define size_matris 201
+/*Libriries->*/
+
+/*<-Definitions*/
+#define size_matris 200
 #define T 500000
 using namespace std;
+/*Definitions->*/
 
 vector<int> mySplit(string line){
     vector<int> values;
@@ -26,7 +30,6 @@ vector<int> mySplit(string line){
         line=line.substr(line.find(" ")+1);
         values.push_back(atoi( atom.c_str() ));
     }
-    values.push_back(atoi( line.c_str() ));
     return values;
 }
 
@@ -55,7 +58,7 @@ int main(int argc, char **argv)
     int same_Coloumn=size_matris/territorySize;
     int process_per_line=sqrt(servant_processes);
 
-    //Master process
+    /******************** Master Process *********************/
     if(rank==0){
         ifstream file(argv[1]);
         int x_axis=0;
@@ -104,7 +107,7 @@ int main(int argc, char **argv)
             out<<endl;
         }
     }
-    
+    /*********************** Master Process End *************************/
     int msgInput[territorySize+2][size_matris];
     int msgCopy[territorySize+2][size_matris];
     //Fill the matrixes with 0 to clear default values
@@ -133,74 +136,74 @@ int main(int argc, char **argv)
         for(int i=0;i<T;i++){
             if(rank==1){//If the process is the first process
                 for(int i=0;i<size_matris;i++){
-                    msgData=msgInput[territorySize][i];
+                    msgData=msgCopy[territorySize][i];
                     MPI_Send(&msgData, 1, MPI_INT, process+1, 0, MPI_COMM_WORLD);
                 }
                 for(int i=0;i<size_matris;i++){
                     MPI_Recv(&msgData, 1, MPI_INT, process+1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-                    msgInput[territorySize+1][i]=msgData;
+                    msgCopy[territorySize+1][i]=msgData;
                 }
             }
             else if(rank==servant_processes){//If the process is the last process
                 for(int i=0;i<size_matris;i++){
-                    msgData=msgInput[1][i];
+                    msgData=msgCopy[1][i];
                     MPI_Send(&msgData, 1, MPI_INT, process-1, 0, MPI_COMM_WORLD);
                 }
                 for(int i=0;i<size_matris;i++){
                     MPI_Recv(&msgData, 1, MPI_INT, process-1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-                    msgInput[0][i]=msgData;
+                    msgCopy[0][i]=msgData;
                 }
             }
             else{//If the process is between the first & last processes
                 for(int i=0;i<size_matris;i++){
-                    msgData=msgInput[territorySize][i];
+                    msgData=msgCopy[territorySize][i];
                     MPI_Send(&msgData, 1, MPI_INT, process+1, 0, MPI_COMM_WORLD);
                 }
                 for(int i=0;i<size_matris;i++){
                     MPI_Recv(&msgData, 1, MPI_INT, process+1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-                    msgInput[territorySize+1][i]=msgData;
+                    msgCopy[territorySize+1][i]=msgData;
                 }
                 for(int i=0;i<size_matris;i++){
-                    msgData=msgInput[1][i];
+                    msgData=msgCopy[1][i];
                     MPI_Send(&msgData, 1, MPI_INT, process-1, 0, MPI_COMM_WORLD);
                 }
                 for(int i=0;i<size_matris;i++){
                     MPI_Recv(&msgData, 1, MPI_INT, process-1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-                    msgInput[0][i]=msgData;
+                    msgCopy[0][i]=msgData;
                 }
             }
             //Calculation & Denoising 
-                int random=rand()%pixels;
-                int y=random%size_matris;
-                int x=random/size_matris+1;
-                int up=msgCopy[x-1][y];
-                int down=msgCopy[x+1][y];
-                int left=msgCopy[x][y-1];
-                int right=msgCopy[x][y+1];
-                int left_top=msgCopy[x-1][y-1];
-                int right_top=msgCopy[x-1][y+1];
-                int left_bottom=msgCopy[x+1][y-1];
-                int right_bottom=msgCopy[x+1][y+1];
+            int random=rand()%pixels;
+            int y=random%size_matris;
+            int x=random/size_matris+1;
+            int up=msgCopy[x-1][y];
+            int down=msgCopy[x+1][y];
+            int left=msgCopy[x][y-1];
+            int right=msgCopy[x][y+1];
+            int left_top=msgCopy[x-1][y-1];
+            int right_top=msgCopy[x-1][y+1];
+            int left_bottom=msgCopy[x+1][y-1];
+            int right_bottom=msgCopy[x+1][y+1];
 
-                
-                /*What I am doing here is that 
-                *If pixel is the right then env value is the summation of top, bottom, right, left, top-left corner, top-bottom corner values
-                *if pixel is the top then env value is the summation of left, right, bottom, left-bottom, right-bottom values
-                *And so on, according to where the pixel is calculate the env value
-                */
-                int env;
-                if(y==0)
-                    env=up+down+right+right_bottom+right_top;
-                else if(y==size_matris-1)
-                    env=up+down+left+left_bottom+left_top;
-                else
-                    env=up+down+left+right+left_top+right_top+left_bottom+right_bottom;
-                double ex=monte_carlo(msgInput[x][y],msgCopy[x][y],env,B,Y);//Call the monte_carlo function to calculate exp value
-                if(ex>1)ex=1;//if the exp value is greater then 1 then equal it to 1
-                double treshold=(rand()%9+1)*0.1;//Pick a random treshold number
-                if(treshold<ex){//If the exp value is greater than treshold then change the value
-                    msgCopy[x][y]=-msgCopy[x][y];
-                }                
+            /*What I am doing here is that 
+            *If pixel is the right then env value is the summation of top, bottom, right, left, top-left corner, top-bottom corner values
+            *if pixel is the top then env value is the summation of left, right, bottom, left-bottom, right-bottom values
+            *And so on, according to where the pixel is calculate the env value
+            */
+            int env;
+            if(y==0)
+                env=up+down+right+right_bottom+right_top;
+            else if(y==size_matris-1)
+                env=up+down+left+left_bottom+left_top;
+            else
+                env=up+down+left+right+left_top+right_top+left_bottom+right_bottom;
+            double ex=monte_carlo(msgInput[x][y],msgCopy[x][y],env,B,Y);//Call the monte_carlo function to calculate exp value
+            // cout<<ex<<endl;
+            if(ex>1)ex=1;//if the exp value is greater then 1 then equal it to 1
+            double treshold=(rand()%9+1)*0.1;//Pick a random treshold number
+            if(treshold<ex){//If the exp value is greater than treshold then change the value
+                msgCopy[x][y]=-msgCopy[x][y];
+            }               
         }
             for(int i=0;i<territorySize;i++){
                 for(int j=0;j<size_matris;j++){
@@ -210,8 +213,6 @@ int main(int argc, char **argv)
             }
         }
     }
-    
     MPI::Finalize();
-
     return 0;
 }
