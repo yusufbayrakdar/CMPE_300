@@ -101,7 +101,7 @@ int main(int argc, char **argv)
         }
         //Master writes values to the output.txt
         ofstream out (argv[2]);
-        for(int col=0;col<size_matris;col++){
+        for(int col=0;col<size_matris-1;col++){
             for(int row=0;row<size_matris;row++){
                 if(output[row][col]!=0){
                     out<<output[row][col]<<" ";
@@ -140,6 +140,16 @@ int main(int argc, char **argv)
         }
         for(int i=0;i<T/servant_processes;i++){
             
+            int random=rand()%pixels;
+            int y=random%size_matris;
+            int x=random/size_matris+1;
+            
+            if (x==1||x==territorySize) {
+                isBorder=true;
+            }
+            else
+                isBorder=false;
+
             if (isBorder) {
                 if(rank==1){//If the process is the first process
                     for(int i=0;i<size_matris;i++){
@@ -183,15 +193,7 @@ int main(int argc, char **argv)
             
             
             //Calculation & Denoising 
-            int random=rand()%pixels;
-            int y=random%size_matris;
-            int x=random/size_matris+1;
             
-            if (x==1||x==territorySize) {
-                isBorder=true;
-            }
-            else
-                isBorder=false;
             
             // cout<<"process "<<process<<" random "<<random<<" x "<<x<<" y "<<y<<endl;
             int up=msgCopy[x-1][y];

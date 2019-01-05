@@ -53,6 +53,7 @@ int main(int argc, char **argv)
     double Y=log((1-pi)/pi)/2;//calculate pi value
     double B;
     sscanf(argv[3],"%lf",&B);//receive beta value
+    bool isBorder=true;
     
     MPI::Init();
     rank = MPI::COMM_WORLD.Get_rank();
@@ -148,7 +149,17 @@ int main(int argc, char **argv)
                 }
             }
             for(int i=0;i<Times/servant_processes;i++){//Iterate "Times/number of servant processes" times
-            if(process*territorySize%size_matris==territorySize){//If process is in leftmost column
+            
+            int random=rand()%pixels;//choose random number
+            int y=random%size_matris+1;//y axis of random pixel
+            int x=random/size_matris+1;//x axis of random pixel
+            if (x==1||y==1||x==territorySize||y==territorySize) {
+                isBorder=true;
+            }
+            else
+                isBorder=false;
+            if (isBorder) {
+                if(process*territorySize%size_matris==territorySize){//If process is in leftmost column
                 for(int x_axis = 0; x_axis < territorySize; x_axis++)
                 {
                     int msgData=msgCopy[x_axis+1][territorySize];
@@ -329,10 +340,11 @@ int main(int argc, char **argv)
                 MPI_Recv(&msgData, 1, MPI_INT, process-same_Coloumn-1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
                 msgCopy[0][0]=msgData;
             }
+            }
+            
+            
+            
             //Calculating & Denoising
-            int random=rand()%pixels;//choose random number
-            int y=random%size_matris+1;//y axis of random pixel
-            int x=random/size_matris+1;//x axis of random pixel
             int up=msgCopy[x-1][y];//value of top pixel
             int down=msgCopy[x+1][y];//value of bottom pixel
             int left=msgCopy[x][y-1];//value of left pixel 
