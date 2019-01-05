@@ -4,7 +4,6 @@
 *   Student Number: 2016400378
 *   Compile Status: Compiling
 *   Program Status: Working
-*   Run Time: 5-10 mins
 *   To compile  =>  mpic++ -o  square square.cc
 *   To run      =>  mpiexec -n  5 ./square lena200_noisy.txt output.txt 0.4 0.15
 *   To see the image    => python text_to_image.py output.txt output.jpg
@@ -150,13 +149,13 @@ int main(int argc, char **argv)
             }
             for(int i=0;i<Times/servant_processes;i++){//Iterate "Times/number of servant processes" times
             
-            int random=rand()%pixels;//choose random number
-            int y=random%size_matris+1;//y axis of random pixel
-            int x=random/size_matris+1;//x axis of random pixel
-            if (x==1||y==1||x==territorySize||y==territorySize) {
+            int random=rand()%pixels;//Choose a random number to find a random pixel
+            int y=random%size_matris+1;//Cnvert the random number to y coordinate of the random pixel
+            int x=random/size_matris+1;//Cnvert the random number to x coordinate of the random pixel
+            if (x==1||y==1||x==territorySize||y==territorySize) {//If the random pixel is a border pixel then let slaves send/receive mesagge to each other
                 isBorder=true;
             }
-            else
+            else//Otherwise, if the random is not a border pixel then dont let the slaves to send/receive messages to each other
                 isBorder=false;
             if (isBorder) {
                 if(process*territorySize%size_matris==territorySize){//If process is in leftmost column
