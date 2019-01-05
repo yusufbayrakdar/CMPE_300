@@ -100,7 +100,7 @@ int main(int argc, char **argv)
         }
         //Master writes values to the output.txt
         ofstream out (argv[2]);
-        for(int col=0;col<size_matris-1;col++){
+        for(int col=0;col<size_matris;col++){
             for(int row=0;row<size_matris;row++){
                 if(output[row][col]!=0){
                     out<<output[row][col]<<" ";
